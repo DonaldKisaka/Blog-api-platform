@@ -10,6 +10,6 @@ public class HelloController {
 
     @GetMapping("/hello")
     public String sayHello() {
-        return "Hello, my name is Donald Masibo Kisaka!";
+        return "Hello, my name is Donald Masibo Kisaka and I am 20 years old and I love programming!";
     }
 }
