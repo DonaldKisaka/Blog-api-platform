@@ -1,6 +1,8 @@
-package com.blog.donaldkisaka.model;
+package com.blog.donaldkisaka.repository;
 
+import com.blog.donaldkisaka.model.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
+
 }
