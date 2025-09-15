@@ -26,9 +26,8 @@ public class Post {
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    private String excerpt;
 
-    private Boolean published = false;
+    private Boolean published;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -45,23 +44,12 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User author;
 
-
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<Comment> comments;
-
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<Like> likes;
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "post_tags",
-            joinColumns = @JoinColumn(name = "post_id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
-    private Set<Tag> tags;
-
     public boolean isDeleted() {
         return deletedAt != null;
+    }
+
+    public boolean isPublished() {
+        return published != null && published;
     }
 
 }
