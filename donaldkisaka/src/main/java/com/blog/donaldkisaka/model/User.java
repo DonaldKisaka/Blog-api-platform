@@ -16,8 +16,6 @@ import java.util.List;
 @Entity
 @Data
 @Table(name = "users")
-@NoArgsConstructor
-@AllArgsConstructor
 public class User implements UserDetails {
 
     @Id
@@ -41,6 +39,15 @@ public class User implements UserDetails {
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    public User(String username, String email, String password) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
+
+    public User() {
+    }
 
 
 
