@@ -30,6 +30,7 @@ public class PostService {
         post.setContent(input.getContent());
         post.setAuthor(author);
         post.setPublished(false);
+        post.setCreatedAt(java.time.LocalDateTime.now());
 
         return postRepository.save(post);
     }
@@ -46,9 +47,15 @@ public class PostService {
         return postRepository.findAllByPublishedAndDeletedAtIsNull(true, pageable);
     }
 
-    public Post updatePost(Long postId, UpdatePost input) {
+    public Post updatePost(Long postId, UpdatePost input, String userEmail) {
         Post existingPost = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        String authorEmail = existingPost.getAuthor().getEmail();
+
+        if (!authorEmail.equals(userEmail)) {
+            throw new RuntimeException("You are not authorized to update this post!");
+        }
 
         existingPost.setTitle(input.getTitle());
         existingPost.setContent(input.getContent());
@@ -64,9 +71,15 @@ public class PostService {
         return postRepository.save(post);
     }
 
-    public void SoftDeletePost(Long postId) {
+    public void SoftDeletePost(Long postId, String userEmail) {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        String authorEmail = post.getAuthor().getEmail();
+
+        if (!authorEmail.equals(userEmail)) {
+            throw new RuntimeException("You are not authorized to delete this post!");
+        }
 
         post.setDeletedAt(java.time.LocalDateTime.now());
         postRepository.save(post);
