@@ -6,6 +6,7 @@ import com.blog.donaldkisaka.dto.LoginUser;
 import com.blog.donaldkisaka.dto.RegisterUser;
 import com.blog.donaldkisaka.model.User;
 import com.blog.donaldkisaka.response.LoginResponse;
+import com.blog.donaldkisaka.response.RegisterResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,11 +26,13 @@ public class AuthenticationController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<User> register(
+    public ResponseEntity<RegisterResponse> register(
             @RequestBody RegisterUser registerUser
     ) {
         User registeredUser = authenticationService.signUp(registerUser);
-        return ResponseEntity.ok(registeredUser);
+        String jwtToken = jwtService.generateToken(registeredUser);
+        RegisterResponse registerResponse = new RegisterResponse(jwtToken, jwtService.getExpirationTime(), registeredUser.getUsername(), registeredUser.getEmail());
+        return ResponseEntity.ok(registerResponse);
     }
 
     @PostMapping("/login")
