@@ -25,23 +25,40 @@ public class AuthenticationService {
     }
 
     public User signUp(RegisterUser input) {
-        User user = new User(input.getUsername(), input.getEmail(), passwordEncoder.encode(input.getPassword()));
-        user.setEnabled(true);
-        user.setRole(Role.USER);
-        return userRepository.save(user);
+
+
+        if (userRepository.existsByEmail(input.getEmail())) {
+            throw new IllegalArgumentException("Email already exists.");
+        }
+
+        if (userRepository.existsByUsername(input.getUsername())) {
+            throw new IllegalArgumentException("Username already exists.");
+        }
+        try {
+            User user = new User(input.getUsername(), input.getEmail(), passwordEncoder.encode(input.getPassword()));
+            user.setEnabled(true);
+            user.setRole(Role.USER);
+            return userRepository.save(user);
+        } catch (Exception e) {
+            throw new RuntimeException("Registration failed.");
+        }
     }
 
     public User authenticate(LoginUser input) {
-        User user = userRepository.findByEmail(input.getEmail()).orElseThrow(() -> new RuntimeException("User not found"));
-        if (!passwordEncoder.matches(input.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+        try {
+            User user = userRepository.findByEmail(input.getEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+            if (!passwordEncoder.matches(input.getPassword(), user.getPassword())) {
+                throw new RuntimeException("Invalid password");
+            }
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            input.getEmail(),
+                            input.getPassword()
+                    )
+            );
+            return user;
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
         }
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        input.getEmail(),
-                        input.getPassword()
-                )
-        );
-        return user;
     }
 }
