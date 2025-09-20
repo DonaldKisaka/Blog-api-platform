@@ -9,6 +9,7 @@ public record PostResponse(
         String title,
         String content,
         User author,
+        Boolean published,
         LocalDateTime createdAt,
-        Boolean published
+        LocalDateTime updatedAt
 ) {}
