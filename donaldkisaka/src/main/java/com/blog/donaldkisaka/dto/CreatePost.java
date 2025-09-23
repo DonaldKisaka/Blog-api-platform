@@ -11,5 +11,6 @@ public class CreatePost {
     @NotBlank(message = "Content is required")
     private String content;
 
-    private String author;
+    private Boolean published = false;
+
 }
