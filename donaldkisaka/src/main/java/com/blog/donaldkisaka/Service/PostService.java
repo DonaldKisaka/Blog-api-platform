@@ -8,7 +8,11 @@ import com.blog.donaldkisaka.repository.PostRepository;
 import com.blog.donaldkisaka.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
 
 @Service
 public class PostService {
@@ -23,14 +27,13 @@ public class PostService {
 
     public Post createPost(CreatePost input, String userEmail) {
         User author = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         Post post = new Post();
         post.setTitle(input.getTitle());
         post.setContent(input.getContent());
         post.setAuthor(author);
         post.setPublished(false);
-        post.setCreatedAt(java.time.LocalDateTime.now());
 
         return postRepository.save(post);
     }
@@ -39,23 +42,40 @@ public class PostService {
         return postRepository.findAllByDeletedAtIsNull(pageable);
     }
 
-    public Post getPostById(Long id) {
-        return postRepository.findByIdAndDeletedAtIsNull(id).orElseThrow(() -> new RuntimeException("Post not found"));
+    public Post getPostById(Long id, String userEmail) {
+        Post post = postRepository.findByIdAndDeletedAtIsNull(id).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+
+        if (!post.getPublished()) {
+            if (!post.getAuthor().getEmail().equals(userEmail)) {
+                try {
+                    throw new AccessDeniedException("Access denied to unpublished post");
+                } catch (AccessDeniedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        return post;
     }
 
     public Page<Post> getPublishedPosts(Pageable pageable) {
         return postRepository.findAllByPublishedAndDeletedAtIsNull(true, pageable);
     }
 
-    public Post updatePost(Long postId, UpdatePost input, String userEmail) {
-        Post existingPost = postRepository.findByIdAndDeletedAtIsNull(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+    public Page<Post> getUserPosts(String userEmail, Pageable pageable) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        String authorEmail = existingPost.getAuthor().getEmail();
+        return postRepository.findAllByAuthorAndDeletedAtIsNull(user, pageable);
+    }
 
-        if (!authorEmail.equals(userEmail)) {
-            throw new RuntimeException("You are not authorized to update this post!");
-        }
+    public Post updatePost(Long id, UpdatePost input, String userEmail) {
+        Post existingPost = postRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+
+       if (!existingPost.getAuthor().getEmail().equals(userEmail)) {
+           throw new org.springframework.security.access.AccessDeniedException("You are not authorized to update this post!");
+       }
 
         existingPost.setTitle(input.getTitle());
         existingPost.setContent(input.getContent());
@@ -63,9 +83,25 @@ public class PostService {
         return postRepository.save(existingPost);
     }
 
-    public Post publishPost(Long postId) {
+    public Post togglePublishStatus(Long postId, String userEmail) {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+
+        if (!post.getAuthor().getEmail().equals(userEmail)) {
+            throw new AccessDeniedException("You are not authorized to publish this post!");
+        }
+
+        post.setPublished(!post.getPublished());
+        return postRepository.save(post);
+    }
+
+    public Post publishPost(Long postId, String userEmail) {
+        Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+
+       if (!post.getAuthor().getEmail().equals(userEmail)) {
+           throw new AccessDeniedException("You are not authorized to publish this post!");
+       }
 
         post.setPublished(true);
         return postRepository.save(post);
@@ -73,15 +109,19 @@ public class PostService {
 
     public void SoftDeletePost(Long postId, String userEmail) {
         Post post = postRepository.findByIdAndDeletedAtIsNull(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
 
-        String authorEmail = post.getAuthor().getEmail();
-
-        if (!authorEmail.equals(userEmail)) {
-            throw new RuntimeException("You are not authorized to delete this post!");
+        if (!post.getAuthor().getEmail().equals(userEmail)) {
+            throw new AccessDeniedException("You are not authorized to delete this post!");
         }
-
-        post.setDeletedAt(java.time.LocalDateTime.now());
+        post.setDeletedAt(LocalDateTime.now());
         postRepository.save(post);
+    }
+
+    public Page<Post> searchPublishedPosts(String keyword, Pageable pageable) {
+        return postRepository.searchByTitleOrContentAndPublishedAndDeletedAtIsNull(
+                keyword, true, pageable
+        )
+
     }
 }
